@@ -1,1 +1,2 @@
-1000.0,Food ,Dinner,2025-03-05
+1000.0,food,dinner,2025-03-05
+2000.0,Travel,Bus fare,2025-03-06

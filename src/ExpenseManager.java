@@ -1,9 +1,9 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,12 +15,12 @@ public class ExpenseManager {
 
     public ExpenseManager() {
         expenses = new ArrayList<>();
-        loadExpensesFromFile();
+        loadExpenses();
     }
 
     public void addExpense(Expense expense) {
         expenses.add(expense);
-        saveExpensesToFile();
+        saveExpenses();
     }
 
     public void viewExpenses() {
@@ -28,7 +28,6 @@ public class ExpenseManager {
             System.out.println("No expenses recorded.");
             return;
         }
-
         System.out.println("\n----- Expense List -----");
         for (int i = 0; i < expenses.size(); i++) {
             System.out.println((i + 1) + ". " + expenses.get(i));
@@ -38,7 +37,7 @@ public class ExpenseManager {
     public void removeExpense(int index) {
         if (index >= 0 && index < expenses.size()) {
             expenses.remove(index);
-            saveExpensesToFile();
+            saveExpenses();
             System.out.println("Expense removed successfully.");
         } else {
             System.out.println("Invalid expense number!");
@@ -52,7 +51,7 @@ public class ExpenseManager {
             expense.setCategory(newCategory);
             expense.setDescription(newDescription);
             expense.setDate(newDate);
-            saveExpensesToFile();
+            saveExpenses();
             System.out.println("Expense updated successfully.");
         } else {
             System.out.println("Invalid expense number!");
@@ -68,8 +67,7 @@ public class ExpenseManager {
 
     public double getTotalExpensesForWeek() {
         LocalDate today = LocalDate.now();
-        LocalDate startOfWeek = today.with(DayOfWeek.MONDAY);
-
+        LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
         return expenses.stream()
                 .filter(expense -> {
                     LocalDate expenseDate = LocalDate.parse(expense.getDate(), DateTimeFormatter.ISO_DATE);
@@ -81,19 +79,32 @@ public class ExpenseManager {
 
     public double getTotalExpensesForMonth() {
         LocalDate today = LocalDate.now();
-        String monthYear = today.toString().substring(0, 7);
-
         return expenses.stream()
-                .filter(expense -> expense.getDate().startsWith(monthYear))
+                .filter(expense -> {
+                    LocalDate expenseDate = LocalDate.parse(expense.getDate(), DateTimeFormatter.ISO_DATE);
+                    return expenseDate.getMonth() == today.getMonth() && expenseDate.getYear() == today.getYear();
+                })
                 .mapToDouble(Expense::getAmount)
                 .sum();
     }
 
-    public int getExpenseCount() {
-        return expenses.size();
+    private void saveExpenses() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            for (Expense expense : expenses) {
+                writer.write(expense.getAmount() + "," + expense.getCategory() + "," +
+                        expense.getDescription() + "," + expense.getDate());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving expenses: " + e.getMessage());
+        }
     }
 
-    private void loadExpensesFromFile() {
+    private void loadExpenses() {
+        expenses.clear();
+        File file = new File(FILE_NAME);
+        if (!file.exists()) return;
+
         try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -106,22 +117,12 @@ public class ExpenseManager {
                     expenses.add(new Expense(amount, category, description, date));
                 }
             }
-            System.out.println("Expenses loaded successfully. Total expenses: " + expenses.size());
         } catch (IOException e) {
-            System.out.println("No existing data found. Starting fresh.");
+            System.out.println("Error loading expenses: " + e.getMessage());
         }
     }
 
-    private void saveExpensesToFile() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            for (Expense expense : expenses) {
-                writer.write(expense.getAmount() + "," + expense.getCategory() + "," + expense.getDescription() + "," + expense.getDate());
-                writer.newLine();
-            }
-            System.out.println("Expenses saved successfully.");
-        } catch (IOException e) {
-            System.out.println("Error saving expenses!");
-            e.printStackTrace();
-        }
+    public int getExpenseCount() {
+        return expenses.size();
     }
 }

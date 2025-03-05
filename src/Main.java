@@ -1,4 +1,6 @@
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 
 public class Main {
@@ -26,17 +28,32 @@ public class Main {
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter amount: ");
-                    double amount = scanner.nextDouble();
-                    scanner.nextLine();
+                    double amount;
+                    while (true) {
+                        System.out.print("Enter amount: ");
+                        if (scanner.hasNextDouble()) {
+                            amount = scanner.nextDouble();
+                            scanner.nextLine();
+                            if (amount > 0) break;
+                            else System.out.println("Amount must be greater than zero.");
+                        } else {
+                            System.out.println("Invalid input! Please enter a valid number.");
+                            scanner.next();
+                        }
+                    }
 
                     System.out.print("Enter category: ");
                     String category = scanner.nextLine();
                     System.out.print("Enter description: ");
                     String description = scanner.nextLine();
 
-                    System.out.print("Enter date (YYYY-MM-DD): ");
-                    String date = scanner.nextLine();
+                    String date;
+                    while (true) {
+                        System.out.print("Enter date (YYYY-MM-DD): ");
+                        date = scanner.nextLine();
+                        if (isValidDate(date)) break;
+                        else System.out.println("Invalid date format! Please use YYYY-MM-DD.");
+                    }
 
                     manager.addExpense(new Expense(amount, category, description, date));
                     System.out.println("Expense added successfully.");
@@ -47,17 +64,27 @@ public class Main {
                     break;
 
                 case 3:
+                    if (manager.getExpenseCount() == 0) {
+                        System.out.println("No expenses recorded.");
+                        break;
+                    }
                     manager.viewExpenses();
                     System.out.print("Enter expense number to remove: ");
-                    int removeIndex = scanner.nextInt() - 1;
-                    manager.removeExpense(removeIndex);
+                    int removeIndex = scanner.nextInt();
+                    scanner.nextLine();
+                    manager.removeExpense(removeIndex - 1);
                     break;
 
                 case 4:
+                    if (manager.getExpenseCount() == 0) {
+                        System.out.println("No expenses recorded.");
+                        break;
+                    }
                     manager.viewExpenses();
                     System.out.print("Enter expense number to update: ");
-                    int updateIndex = scanner.nextInt() - 1;
+                    int updateIndex = scanner.nextInt();
                     scanner.nextLine();
+
                     System.out.print("Enter new amount: ");
                     double newAmount = scanner.nextDouble();
                     scanner.nextLine();
@@ -67,11 +94,14 @@ public class Main {
                     String newDescription = scanner.nextLine();
                     System.out.print("Enter new date (YYYY-MM-DD): ");
                     String newDate = scanner.nextLine();
-                    manager.updateExpense(updateIndex, newAmount, newCategory, newDescription, newDate);
+
+                    manager.updateExpense(updateIndex - 1, newAmount, newCategory, newDescription, newDate);
                     break;
 
                 case 5:
                     System.out.println("Total expenses for today: $" + manager.getTotalExpensesForDay(LocalDate.now().toString()));
+                    System.out.println("Total expenses for this week: $" + manager.getTotalExpensesForWeek());
+                    System.out.println("Total expenses for this month: $" + manager.getTotalExpensesForMonth());
                     break;
 
                 case 6:
@@ -80,8 +110,17 @@ public class Main {
                     return;
 
                 default:
-                    System.out.println("Invalid option.");
+                    System.out.println("Invalid option. Try again.");
             }
+        }
+    }
+
+    private static boolean isValidDate(String date) {
+        try {
+            LocalDate.parse(date, DateTimeFormatter.ISO_DATE);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
         }
     }
 }
